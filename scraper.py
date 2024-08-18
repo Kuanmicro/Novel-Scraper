@@ -156,16 +156,23 @@ def get_next_task():
 
 # 탭 닫기 및 다음 작업으로 이동하는 함수
 def close_tab_and_proceed():
+
+    check_stop()  # 중단 요청 확인
+    pyautogui.click((initial_x, initial_y))
+    time.sleep(initial_delay)
+    check_stop()  # 중단 요청 확인
+
     # Ctrl + W로 탭 닫기
     pyautogui.hotkey('ctrl', 'w')
     time.sleep(1)  # 탭이 닫히는 데 시간이 걸릴 수 있으므로 잠시 대기
-
-
+    check_stop()  # 중단 요청 확인
 
     # 다음 작업으로 이동
     next_task = get_next_task()
     if next_task:
         combobox_title.set(next_task['title'])
+        check_stop()  # 중단 요청 확인
+
         on_start()
 
 # 로그를 업데이트하는 함수
@@ -753,7 +760,7 @@ def on_toggle_key_press(event):
         stop_flag = True
         logging.info("중단 요청이 감지되었습니다. 현재 작업을 중단합니다.")
         update_log("중단 요청이 감지되었습니다. 현재 작업을 중단합니다.")
-        scraper_thread = None
+
 
 # GUI 시작
 def start_gui():
