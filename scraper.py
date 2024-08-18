@@ -12,8 +12,6 @@ import logging
 from datetime import datetime
 import re
 import json
-import queue
-
 
 # 작업 목록 파일 경로 설정
 task_list_path = os.path.join(os.path.expanduser("~"), "Desktop", "Scraper", "task_list.json")
@@ -52,20 +50,6 @@ base_save_path = r'C:\Users\Home\Desktop\소설'
 stop_flag = False
 scraper_thread = None
 lock = Lock()
-
-def update_log_safe(message):
-    """ 메인 스레드에서 안전하게 로그를 업데이트하기 위한 함수 """
-    gui_queue.put(message)
-
-def process_queue():
-    """ 큐에서 메세지를 가져와서 로그를 업데이트 """
-    try:
-        while True:
-            message = gui_queue.get_nowait()
-            update_log(message)
-    except queue.Empty:
-        pass
-    root.after(100, process_queue)  # 100ms 후 다시 큐를 처리
 
 def check_stop():
     """ 중단 요청이 있는지 확인하고, 중단이 요청되었으면 스크립트를 안전하게 종료 """
@@ -172,25 +156,16 @@ def get_next_task():
 
 # 탭 닫기 및 다음 작업으로 이동하는 함수
 def close_tab_and_proceed():
-    check_stop()  # 중단 요청 확인
-    pyautogui.click((initial_x, initial_y))
-    time.sleep(initial_delay)
-    check_stop()  # 중단 요청 확인
-
+    
     # Ctrl + W로 탭 닫기
     pyautogui.hotkey('ctrl', 'w')
     time.sleep(1)  # 탭이 닫히는 데 시간이 걸릴 수 있으므로 잠시 대기
-    check_stop()  # 중단 요청 확인
 
     # 다음 작업으로 이동
     next_task = get_next_task()
     if next_task:
         combobox_title.set(next_task['title'])
-        check_stop()  # 중단 요청 확인
         on_start()
-    else:
-        logging.info("모든 작업이 완료되었습니다.")
-
 
 # 로그를 업데이트하는 함수
 def update_log(message):
@@ -769,22 +744,19 @@ def run_single_chapter():
 # 중단 요청을 처리하는 함수 수정
 def on_toggle_key_press(event):
     global stop_flag, scraper_thread
-    if scraper_thread is None:  # 스크립트가 실행 중이 아닐 때
-        stop_flag = False  # 중단 플래그 초기화
+    if scraper_thread is None:
+        stop_flag = False
         scraper_thread = Thread(target=on_start)
         scraper_thread.start()
-    else:  # 스크립트가 실행 중일 때
-        stop_flag = True  # 중단 요청
+    else:
+        stop_flag = True
         logging.info("중단 요청이 감지되었습니다. 현재 작업을 중단합니다.")
-        update_log_safe("중단 요청이 감지되었습니다. 현재 작업을 중단합니다.")
-        scraper_thread.join()  # 스레드가 종료될 때까지 대기
-        scraper_thread = None  # 스레드가 종료된 후에 초기화
-
+        update_log("중단 요청이 감지되었습니다. 현재 작업을 중단합니다.")
+        scraper_thread = None
 
 # GUI 시작
 def start_gui():
     global root, combobox_title, entry_start_chapter, entry_num_chapters_to_process, entry_total_chapters, scraper_thread, stop_flag, log_text
-    global gui_queue  # 큐를 전역으로 선언하여 다른 함수에서도 접근할 수 있게 함
 
     stop_flag = False
     scraper_thread = None
@@ -820,10 +792,6 @@ def start_gui():
 
     log_text = tk.Text(root, state=tk.DISABLED, height=15, width=50)
     log_text.grid(row=5, column=0, columnspan=4, padx=10, pady=10)
-
-    # GUI 큐 초기화 및 처리 시작
-    gui_queue = queue.Queue()  # 큐 초기화
-    root.after(100, process_queue)  # 100ms 후에 큐를 처리하는 함수 실행
 
     root.after(100, update_dropdown)
     root.after(100, register_key_events)
