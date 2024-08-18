@@ -52,14 +52,13 @@ scraper_thread = None
 lock = Lock()
 
 def check_stop():
-    """ 중단 요청이 있는지 확인하고, 중단이 요청되었으면 스크립트를 안전하게 종료 """
     global stop_flag, scraper_thread
     if stop_flag:
         logging.info("중단 요청이 감지되었습니다. 스크립트를 중단합니다.")
         update_log("중단 요청이 감지되었습니다. 스크립트를 중단합니다.")
         stop_flag = False
         scraper_thread = None
-        raise KeyboardInterrupt("스크립트가 사용자에 의해 중단되었습니다.")
+        raise SystemExit("스크립트가 사용자에 의해 중단되었습니다.")
 
 # 작업 목록 로드 함수
 def load_task_list():
@@ -156,7 +155,6 @@ def get_next_task():
 
 # 탭 닫기 및 다음 작업으로 이동하는 함수
 def close_tab_and_proceed():
-    global stop_flag
     check_stop()  # 중단 요청 확인
     if stop_flag:  # 중단 요청이 있는 경우 작업을 중단하고 종료
         return
@@ -179,7 +177,7 @@ def close_tab_and_proceed():
     if next_task:
         combobox_title.set(next_task['title'])
         on_start()
-
+        
 # 로그를 업데이트하는 함수
 def update_log(message):
     log_text.config(state=tk.NORMAL)
@@ -767,7 +765,7 @@ def on_toggle_key_press(event):
         update_log("중단 요청이 감지되었습니다. 현재 작업을 중단합니다.")
         scraper_thread.join()  # 스레드가 종료될 때까지 기다립니다.
         scraper_thread = None
-        
+
 # GUI 시작
 def start_gui():
     global root, combobox_title, entry_start_chapter, entry_num_chapters_to_process, entry_total_chapters, scraper_thread, stop_flag, log_text
